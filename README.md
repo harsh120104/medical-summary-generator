@@ -1,10 +1,10 @@
-# 🏥 Medical Discharge Summary Generator using LLaMA 3.1
+#  Medical Discharge Summary Generator using LLaMA 3.1
 
 An AI-powered pipeline that automatically extracts structured clinical data from raw medical transcripts and generates professional hospital discharge summaries using Meta's **LLaMA 3.1 8B Instruct** model.
 
 ---
 
-## 📋 Table of Contents
+##  Table of Contents
 
 **Part 1 — LLM Extraction & Discharge Summary**
 - [Overview](#overview)
@@ -48,11 +48,11 @@ The entire pipeline runs on a single GPU using 4-bit quantization (via `bitsandb
 
 ## Features
 
-- 🤖 **LLM-based extraction** — Uses LLaMA 3.1 8B Instruct to extract structured fields from free-form medical text
-- ✅ **Pydantic validation** — Ensures extracted JSON conforms to a defined clinical schema before further processing
-- 📝 **Discharge summary generation** — Produces readable, formatted discharge documents from structured data
-- 📄 **PDF export** — Saves each summary as a standalone PDF using ReportLab
-- ⚡ **4-bit quantization** — Loads the model efficiently using NF4 quantization with double quantization enabled
+-  **LLM-based extraction** — Uses LLaMA 3.1 8B Instruct to extract structured fields from free-form medical text
+-  **Pydantic validation** — Ensures extracted JSON conforms to a defined clinical schema before further processing
+-  **Discharge summary generation** — Produces readable, formatted discharge documents from structured data
+-  **PDF export** — Saves each summary as a standalone PDF using ReportLab
+-  **4-bit quantization** — Loads the model efficiently using NF4 quantization with double quantization enabled
 
 ---
 
@@ -215,12 +215,12 @@ It ensures that:
 
 ## RAG Features
 
-- 🔍 **Semantic search with FAISS** — Builds vector indexes over medical terms and drug names for fast similarity retrieval
-- 🧬 **Dual embedding strategy** — Uses `all-MiniLM-L6-v2` for ICD diagnosis matching and `pritamdeka/S-PubMedBert-MS-MARCO` (biomedical BERT) for medication matching
-- 🎯 **Exact + semantic matching** — Medication lookup first attempts exact string match, then falls back to semantic search for best accuracy
-- 🏷️ **ICD term standardization** — Maps free-text diagnoses to the closest ICD-coded medical term
-- 💊 **Drug name validation** — Matches discharge medications to verified drug names from a real-world drug dataset
-- 📄 **Consolidated PDF report** — Exports primary diagnosis, secondary diagnosis, and medication validation results into one structured PDF
+-  **Semantic search with FAISS** — Builds vector indexes over medical terms and drug names for fast similarity retrieval
+-  **Dual embedding strategy** — Uses `all-MiniLM-L6-v2` for ICD diagnosis matching and `pritamdeka/S-PubMedBert-MS-MARCO` (biomedical BERT) for medication matching
+-  **Exact + semantic matching** — Medication lookup first attempts exact string match, then falls back to semantic search for best accuracy
+-  **ICD term standardization** — Maps free-text diagnoses to the closest ICD-coded medical term
+-  **Drug name validation** — Matches discharge medications to verified drug names from a real-world drug dataset
+-  **Consolidated PDF report** — Exports primary diagnosis, secondary diagnosis, and medication validation results into one structured PDF
 
 ---
 
