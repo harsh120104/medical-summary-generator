@@ -1,12 +1,12 @@
-[README.md](https://github.com/user-attachments/files/28067577/README.md)
-#  Medical Discharge Summary Generator using LLaMA 3.1
+# 🏥 Medical Discharge Summary Generator using LLaMA 3.1
 
 An AI-powered pipeline that automatically extracts structured clinical data from raw medical transcripts and generates professional hospital discharge summaries using Meta's **LLaMA 3.1 8B Instruct** model.
 
 ---
 
-## Table of Contents
+## 📋 Table of Contents
 
+**Part 1 — LLM Extraction & Discharge Summary**
 - [Overview](#overview)
 - [Features](#features)
 - [Requirements](#requirements)
@@ -16,6 +16,18 @@ An AI-powered pipeline that automatically extracts structured clinical data from
 - [Project Structure](#project-structure)
 - [Output](#output)
 - [Model Details](#model-details)
+
+**Part 2 — RAG-Based Medical Validation**
+- [RAG Validation Overview](#rag-validation-overview)
+- [RAG Features](#rag-features)
+- [Additional Requirements](#additional-requirements)
+- [Required Datasets](#required-datasets)
+- [RAG Pipeline](#rag-pipeline)
+- [Validation Output](#validation-output)
+- [Embedding Models Used](#embedding-models-used)
+
+**General**
+- [Full Project Structure](#full-project-structure)
 - [Limitations](#limitations)
 - [License](#license)
 
@@ -36,11 +48,11 @@ The entire pipeline runs on a single GPU using 4-bit quantization (via `bitsandb
 
 ## Features
 
--  **LLM-based extraction** — Uses LLaMA 3.1 8B Instruct to extract structured fields from free-form medical text
--  **Pydantic validation** — Ensures extracted JSON conforms to a defined clinical schema before further processing
--  **Discharge summary generation** — Produces readable, formatted discharge documents from structured data
--  **PDF export** — Saves each summary as a standalone PDF using ReportLab
--  **4-bit quantization** — Loads the model efficiently using NF4 quantization with double quantization enabled
+- 🤖 **LLM-based extraction** — Uses LLaMA 3.1 8B Instruct to extract structured fields from free-form medical text
+- ✅ **Pydantic validation** — Ensures extracted JSON conforms to a defined clinical schema before further processing
+- 📝 **Discharge summary generation** — Produces readable, formatted discharge documents from structured data
+- 📄 **PDF export** — Saves each summary as a standalone PDF using ReportLab
+- ⚡ **4-bit quantization** — Loads the model efficiently using NF4 quantization with double quantization enabled
 
 ---
 
@@ -151,18 +163,6 @@ The model extracts the following fields from each transcript:
 
 ---
 
-## Project Structure
-
-```
-├── Final_LLaMA_3_1.ipynb       # Main notebook
-├── summary_1.pdf               # Generated PDF for transcript 1
-├── summary_2.pdf               # Generated PDF for transcript 2
-├── summary_3.pdf               # Generated PDF for transcript 3
-└── README.md                   # Project documentation
-```
-
----
-
 ## Output
 
 For each valid transcript, the pipeline produces:
@@ -198,13 +198,162 @@ Example output fields from a urology transcript:
 
 ---
 
+---
+
+# Part 2 — RAG-Based Medical Validation
+
+## RAG Validation Overview
+
+`RAG_validation.ipynb` is the continuation of the LLaMA extraction pipeline. After Part 1 extracts structured JSON from medical transcripts, this script **validates** the extracted diagnoses and medications against real medical reference datasets using **Retrieval-Augmented Generation (RAG)**.
+
+It ensures that:
+- Primary and secondary diagnoses are matched against standardized **ICD medical terms**
+- Discharge medications are verified against a real **drug names database**
+- All validation results are compiled into a single consolidated **PDF report**
+
+---
+
+## RAG Features
+
+- 🔍 **Semantic search with FAISS** — Builds vector indexes over medical terms and drug names for fast similarity retrieval
+- 🧬 **Dual embedding strategy** — Uses `all-MiniLM-L6-v2` for ICD diagnosis matching and `pritamdeka/S-PubMedBert-MS-MARCO` (biomedical BERT) for medication matching
+- 🎯 **Exact + semantic matching** — Medication lookup first attempts exact string match, then falls back to semantic search for best accuracy
+- 🏷️ **ICD term standardization** — Maps free-text diagnoses to the closest ICD-coded medical term
+- 💊 **Drug name validation** — Matches discharge medications to verified drug names from a real-world drug dataset
+- 📄 **Consolidated PDF report** — Exports primary diagnosis, secondary diagnosis, and medication validation results into one structured PDF
+
+---
+
+## Additional Requirements
+
+```
+sentence-transformers
+faiss-cpu
+pandas
+reportlab
+```
+
+Install with:
+
+```bash
+pip install sentence-transformers faiss-cpu pandas reportlab
+```
+
+---
+
+## Required Datasets
+
+This notebook requires two CSV files to be uploaded at runtime (via Google Colab's file uploader):
+
+| File | Description | Key Column Used |
+|---|---|---|
+| `ICD MEDICAL TERMS.csv` | ICD-coded medical terminology reference | Column index `3` (term descriptions) |
+| `drugsComTrain_raw.csv` | Drug names dataset | `drugName` column |
+
+> These files are loaded interactively using `google.colab.files.upload()` and must be available before running the pipeline.
+
+---
+
+## RAG Pipeline
+
+The validation runs in three stages:
+
+### Stage 1 — Primary Diagnosis Validation
+
+```python
+# Encode ICD terms with MiniLM
+model = SentenceTransformer('all-MiniLM-L6-v2')
+embeddings = model.encode(medical_terms)
+
+# Build FAISS index and retrieve closest ICD match
+retrieved_terms = retrieve_medical_term(diagnosis)
+patient["validated_diagnosis"] = retrieved_terms[0]
+```
+
+### Stage 2 — Secondary Diagnosis Validation
+
+```python
+# Skips patients with "null" secondary diagnosis
+# Validates each non-null diagnosis against the ICD FAISS index
+validated_term = retrieve_medical_term(diagnosis)[0]
+```
+
+### Stage 3 — Medication Validation
+
+```python
+# Uses biomedical BERT embeddings for medication matching
+embedding_model = SentenceTransformer("pritamdeka/S-PubMedBert-MS-MARCO")
+
+# Exact match first → semantic fallback
+validated_medicine = retrieve_medicine_term(medicine)[0]
+```
+
+---
+
+## Validation Output
+
+The script produces:
+
+- **Console output** — Side-by-side display of original vs. validated terms for each patient
+- **`RAG_Validation_Report.pdf`** — A structured PDF with three sections:
+
+| Section | Contents |
+|---|---|
+| Primary Diagnosis Validation | Patient name, original diagnosis, ICD-validated diagnosis |
+| Secondary Diagnosis Validation | Per-diagnosis validation for patients with multiple diagnoses |
+| Medication Validation | Original medication name vs. verified drug name |
+
+Example console output:
+```
+========== RAG VALIDATION ==========
+Patient Name         : 61-year-old male
+Original Diagnosis   : Elevated PSA
+Validated Diagnosis  : Elevated prostate specific antigen
+====================================
+```
+
+---
+
+## Embedding Models Used
+
+| Model | Purpose | Source |
+|---|---|---|
+| `all-MiniLM-L6-v2` | ICD diagnosis semantic search | Sentence Transformers |
+| `pritamdeka/S-PubMedBert-MS-MARCO` | Biomedical medication matching | Hugging Face Hub |
+
+---
+
+## Full Project Structure
+
+```
+├── Final_LLaMA_3_1.ipynb         # Part 1 — LLM extraction & discharge summary generation
+├── RAG_validation.ipynb          # Part 2 — RAG-based diagnosis & medication validation
+├── ICD MEDICAL TERMS.csv         # ICD reference dataset (required for Part 2)
+├── drugsComTrain_raw.csv          # Drug names dataset (required for Part 2)
+├── summary_1.pdf                 # Discharge summary PDF — Transcript 1
+├── summary_2.pdf                 # Discharge summary PDF — Transcript 2
+├── summary_3.pdf                 # Discharge summary PDF — Transcript 3
+├── RAG_Validation_Report.pdf     # Consolidated RAG validation report
+└── README.md                     # Project documentation
+```
+
+---
+
 ## Limitations
 
+**Part 1 (LLM Extraction)**
 - Accuracy of extraction depends on transcript clarity and structure. Ambiguous or incomplete transcripts may yield `null` values.
 - The model requires a CUDA GPU; CPU inference is very slow and not recommended.
 - LLaMA 3.1 access on Hugging Face requires manual approval from Meta.
 - PDF formatting is basic; further customization with ReportLab may be needed for clinical deployment.
-- This tool is intended for research and assistive purposes only and should **not** replace professional clinical documentation.
+
+**Part 2 (RAG Validation)**
+- Validation quality depends on the coverage of the ICD and drug datasets — terms outside the dataset may receive a poor semantic match.
+- The medication matching logic does not handle spelling variants or brand/generic name differences beyond what the embedding model can bridge.
+- Datasets (`ICD MEDICAL TERMS.csv`, `drugsComTrain_raw.csv`) must be manually uploaded each session in Google Colab.
+
+**General**
+- This tool is intended for research and assistive purposes only and should **not** replace professional clinical documentation or verified medical coding systems.
 
 ---
 
